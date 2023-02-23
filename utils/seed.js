@@ -1,25 +1,75 @@
 const connection = require("../config/connection");
-const { User, Thought, Reaction } = require("../models");
+const { User, Thought } = require("../models");
 
 connection.on("error", (err) => err);
 
 connection.once("open", async () => {
 	console.log("connected");
 
-	await User.deleteMany({});
-	await Thought.deleteMany({});
-	await Reaction.deleteMany({});
+	await connection.dropDatabase();
+	console.log('Database Dropped');
 
-	const userSeed = [{ username: "user1", email: "test@email.com" }];
-	const thoughtSeed = [
-		{ thoughtText: "This is thought text 1", username: "user1" },
+	const userSeeds = [
+		{
+			username: "user1",
+			email: "user1@email.com",
+			thoughts: [],
+			friends: [],
+		},
+		{
+			username: "user2",
+			email: "user2@email.com",
+			thoughts: [],
+			friends: [],
+		},
 	];
-	const reactionSeed = [{ reactionBody: "Like", username: "user1" }];
+	const thoughtSeeds = [
+		{
+			thoughtText: "Thought 1",
+			username: "user1",
+			reactions: [],
+		},
+		{
+			thoughtText: "Thought 2",
+			username: "user2",
+			reactions: [],
+		},
+	];
+	const reactionSeeds = [
+		{
+			reactionBody: "Reaction 1",
+			username: "user1",
+		},
+		{
+			reactionBody: "Reaction 2",
+			username: "user2",
+		},
+	];
 
-    await User.collection.insertMany(userSeed);
-    await Thought.collection.insertMany(thoughtSeed);
-    await Reaction.collection.insertMany(reactionSeed);
+	const users = await User.insertMany(userSeeds);
 
-    console.info('Seeding complete! 🌱');
-    process.exit(0);
+	const thoughts = [];
+	for (let i = 0; i < thoughtSeeds.length; i++) {
+	  const thought = await Thought.create(thoughtSeeds[i]);
+	  thoughts.push(thought);
+  
+	  const userId = users[i]._id;
+	  const user = await User.findByIdAndUpdate(
+		userId,
+		{ $push: { thoughts: thought._id } },
+		{ new: true }
+	  );
+	}
+
+	for (let i = 0; i < reactionSeeds.length; i++) {
+		const thoughtId = thoughts[i]._id;
+		const reaction = await Thought.findByIdAndUpdate(
+			thoughtId,
+			{ $push: { reactions: reactionSeeds[i] } },
+			{ new: true }
+		);
+	}
+
+	console.info("Seeding complete! 🌱");
+	process.exit(0);
 });
