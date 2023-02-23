@@ -42,11 +42,27 @@ module.exports = {
 					? res.status(404).json({
 							message: "User deleted, but no thoughts found",
 					  })
-					: res.json({ message: "User and thought have been successfully deleted" })
+					: res.json({
+							message: "User and thought have been successfully deleted",
+					  })
 			)
 			.catch((err) => {
 				console.log(err);
 				res.status(500).json(err);
 			});
+	},
+
+	updateUser(req, res) {
+		User.findOneAndUpdate(
+			{ _id: req.params.userId },
+			{ $set: req.body },
+			{ runValidators: true, new: true }
+		)
+			.then((user) => {
+				!user
+					? res.status(404).json({ message: "No user with this Id" })
+					: res.json(user);
+			})
+			.catch((err) => res.status(500).json(err));
 	},
 };
